@@ -89,6 +89,7 @@ private:
 	double _current_lsb;
 	double _power_lsb;
 	uint16_t config;
+	unsigned char temp[2];
 };
 
 INA219::INA219()
@@ -107,6 +108,9 @@ INA219::INA219()
 		bus_adc_resolution << 7 | \
 		shunt_adc_resolution << 3 | \
 		mode;
+
+	temp[1] = _cal_value & 0xFF;
+	temp[0] = (_cal_value & 0xFF00) >> 8;
 }
 
 INA219::~INA219()
@@ -119,7 +123,7 @@ bool INA219::initialize(unsigned short addr)
 	/* First open i2c bus */
 	if ((fd = i2c_open("/dev/i2c-1")) == -1)
 	{
-		perror("Open i2c bus failed.\n");
+		perror("Open i2c bus 1 failed.\n");
 		return false;
 	}
 	else
@@ -133,6 +137,7 @@ bool INA219::initialize(unsigned short addr)
 		INA219::device.page_bytes = 16;
 		INA219::device.iaddr_bytes = 1; /* Set this to zero, and using i2c_ioctl_xxxx API will ignore chip internal address */
 		printf("Open i2c bus succeeded.\n");
+		INA219::set_calibration_32V_2A();
 	}
 }
 
@@ -141,24 +146,20 @@ void INA219::set_calibration_32V_2A()
 	/*Configures to INA219 to be able to measure up to 32V and
 	2A of current. Counter overflow occurs at 3.2A*/
 	ssize_t ret;
-	unsigned char temp[2];
-
-	temp[1] = _cal_value & 0xFF;
-	temp[0] = (_cal_value & 0xFF00) >> 8;
-
-	ret = i2c_ioctl_write(&device, _REG_CALIBRATION, temp, sizeof(temp));
+	
+	ret = i2c_ioctl_write(&device, 0x05, temp, sizeof(temp));
 	if (ret == -1 || (size_t)ret != sizeof(temp))
 	{
-		perror("Set calibration register failed.\n");
+		perror("Set calibration register failed");
 	}
 
 	temp[1] = config & 0xFF;
 	temp[0] = (config & 0xFF00) >> 8;
 
-	ret = i2c_ioctl_write(&device, _REG_CONFIG, temp, 16);
+	ret = i2c_ioctl_write(&device, _REG_CONFIG, temp, 2);
 	if (ret == -1 || (size_t)ret != sizeof(config))
 	{
-		perror("Set config register failed.\n");
+		perror("Set config register failed");
 	}
 }
 
