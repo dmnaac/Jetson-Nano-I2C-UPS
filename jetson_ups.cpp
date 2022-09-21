@@ -136,7 +136,7 @@ bool INA219::initialize(unsigned short addr)
 		INA219::device.flags = 0;
 		INA219::device.page_bytes = 16;
 		INA219::device.iaddr_bytes = 1; /* Set this to zero, and using i2c_ioctl_xxxx API will ignore chip internal address */
-		printf("Open i2c bus succeeded.\n");
+		printf("Open i2c bus succeeded.\n\n");
 		INA219::set_calibration_32V_2A();
 	}
 }
@@ -147,7 +147,7 @@ void INA219::set_calibration_32V_2A()
 	2A of current. Counter overflow occurs at 3.2A*/
 	ssize_t ret;
 	
-	ret = i2c_ioctl_write(&device, 0x05, temp, sizeof(temp));
+	ret = i2c_ioctl_write(&device, _REG_CALIBRATION, temp, sizeof(temp));
 	if (ret == -1 || (size_t)ret != sizeof(temp))
 	{
 		perror("Set calibration register failed");
@@ -156,7 +156,7 @@ void INA219::set_calibration_32V_2A()
 	temp[1] = config & 0xFF;
 	temp[0] = (config & 0xFF00) >> 8;
 
-	ret = i2c_ioctl_write(&device, _REG_CONFIG, temp, 2);
+	ret = i2c_ioctl_write(&device, _REG_CONFIG, temp, sizeof(temp));
 	if (ret == -1 || (size_t)ret != sizeof(config))
 	{
 		perror("Set config register failed");
